@@ -31,7 +31,7 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 # Optional: enables the morning AI summary. If GEMINI_API_KEY is unset, the
 # summary is simply skipped and everything else keeps working.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 
 # Set by the manual "Run workflow" test toggle: send the AI summary right now,
 # ignoring the time-of-day gate and the once-per-day guard (and don't consume it).

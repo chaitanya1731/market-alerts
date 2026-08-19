@@ -48,7 +48,7 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 
 If you skip this, everything else still works — the morning summary is just
 silently skipped. To change the model, set a `GEMINI_MODEL` env var in the
-workflow (default `gemini-2.0-flash`).
+workflow (default `gemini-flash-latest`).
 
 ### 4. Enable the workflow
 
@@ -68,7 +68,7 @@ Edit the `env:` block in `.github/workflows/market-alerts.yml`:
 - `DROP_STEP_PCT` — alert on every N% of drop (currently set to `2`, so −2%, −4%,
   …). A 5% single-day drop is rare; `2` or `1` gives more frequent alerts.
 - `SIDEWAYS_PCT` — move smaller than this (%) counts as "sideways" (default `0.5`).
-- `GEMINI_MODEL` — Gemini model for the morning summary (default `gemini-2.0-flash`).
+- `GEMINI_MODEL` — Gemini model for the morning summary (default `gemini-flash-latest`).
 
 ## Good to know
 

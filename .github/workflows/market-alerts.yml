@@ -38,10 +38,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # morning AI summary (optional)
           FORCE_SUMMARY: ${{ inputs.force_summary }}       # manual test toggle
           DROP_STEP_PCT: "2"   # alert every 2% of drop (-2%, -4%, -6%, ...)
-          # Optional overrides (defaults: SPY,QQQ / 0.5% sideways / gemini-2.0-flash):
+          # Optional overrides (defaults: SPY,QQQ / 0.5% sideways / gemini-flash-latest):
           # SYMBOLS: "SPY,QQQ"
           # SIDEWAYS_PCT: "0.5"
-          # GEMINI_MODEL: "gemini-2.0-flash"
+          # GEMINI_MODEL: "gemini-flash-latest"
         run: python main.py
       - name: Persist state
         run: |
