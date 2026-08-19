@@ -56,7 +56,9 @@ Go to the **Actions** tab and enable workflows if prompted. Use **Run workflow**
 on "Market alerts" to test it immediately (outside market hours it will just say
 "nothing to do" — that's expected).
 
-That's it. It now runs itself every 5 minutes during US market hours.
+That's it. It now runs itself every 15 minutes during US market hours. Note this
+is just the *check* interval — you only get a message when a new drop level is
+crossed (or the once-daily summary / trend), never a message every run.
 
 ---
 

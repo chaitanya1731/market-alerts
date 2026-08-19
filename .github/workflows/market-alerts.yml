@@ -2,11 +2,12 @@ name: Market alerts
 
 on:
   schedule:
-    # Every 5 min, 13:00-21:59 UTC, Mon-Fri. This window covers US market
+    # Every 15 min, 13:00-21:59 UTC, Mon-Fri. This window covers US market
     # hours (09:30-16:00 ET) in both EST and EDT. The script itself checks
     # the real ET clock and whether today is actually a trading day, so
-    # off-hours / holiday runs simply do nothing.
-    - cron: "*/5 13-21 * * 1-5"
+    # off-hours / holiday runs simply do nothing. Alerts still fire only when
+    # a new drop level is crossed -- the cadence just sets the check interval.
+    - cron: "*/15 13-21 * * 1-5"
   workflow_dispatch:      # lets you run it manually from the Actions tab
     inputs:
       force_summary:
