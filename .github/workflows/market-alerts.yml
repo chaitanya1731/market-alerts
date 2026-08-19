@@ -1,0 +1,46 @@
+name: Market alerts
+
+on:
+  schedule:
+    # Every 5 min, 13:00-21:59 UTC, Mon-Fri. This window covers US market
+    # hours (09:30-16:00 ET) in both EST and EDT. The script itself checks
+    # the real ET clock and whether today is actually a trading day, so
+    # off-hours / holiday runs simply do nothing.
+    - cron: "*/5 13-21 * * 1-5"
+  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write         # needed to commit state.json back to the repo
+
+concurrency:
+  group: market-alerts    # never let two runs race on the state file
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Optional overrides (defaults: SPY,QQQ / 5% steps / 0.5% sideways):
+          # SYMBOLS: "SPY,QQQ"
+          # DROP_STEP_PCT: "5"
+          # SIDEWAYS_PCT: "0.5"
+        run: python main.py
+      - name: Persist state
+        run: |
+          if [[ -n "$(git status --porcelain state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "Update alert state [skip ci]"
+            git push
+          fi
