@@ -33,6 +33,10 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
+# Set by the manual "Run workflow" test toggle: send the AI summary right now,
+# ignoring the time-of-day gate and the once-per-day guard (and don't consume it).
+FORCE_SUMMARY = os.getenv("FORCE_SUMMARY", "").lower() in ("1", "true", "yes")
+
 MARKET_OPEN = time(9, 30)
 MARKET_CLOSE = time(16, 0)
 SUMMARY_AFTER = time(9, 45)   # send the morning summary once, ~15 min after open
@@ -157,11 +161,12 @@ def main() -> None:
                 changed = True
 
     # --- morning AI summary, sent once ~15 min after the open ---
-    if (
+    in_summary_window = (
         MARKET_OPEN <= now.time() < MARKET_CLOSE
         and now.time() >= SUMMARY_AFTER
         and not state.get("summary_sent")
-    ):
+    )
+    if in_summary_window or FORCE_SUMMARY:
         data_lines = []
         for sym, (last, prev) in quotes.items():
             pct = (last - prev) / prev * 100.0
@@ -180,9 +185,15 @@ def main() -> None:
         )
         summary = ai_summary(prompt)
         if summary:
-            send("\U0001F305 <b>Morning market summary</b>\n\n" + html.escape(summary))
-            state["summary_sent"] = True
-            changed = True
+            header = "\U0001F9EA <b>Test: morning summary</b>" if FORCE_SUMMARY \
+                else "\U0001F305 <b>Morning market summary</b>"
+            send(header + "\n\n" + html.escape(summary))
+            if not FORCE_SUMMARY:  # a forced test must not consume the real one
+                state["summary_sent"] = True
+                changed = True
+        elif FORCE_SUMMARY:
+            print("FORCE_SUMMARY set but no summary produced "
+                  "(check GEMINI_API_KEY / model / quota).")
 
     # --- daily trend, sent once after the close ---
     if now.time() >= MARKET_CLOSE and not state["trend_sent"]:
