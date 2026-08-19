@@ -12,6 +12,7 @@ State is kept in state.json so each alert fires at most once per day.
 import html
 import json
 import os
+import time as time_module
 from datetime import datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -112,21 +113,28 @@ def ai_summary(prompt: str):
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     )
-    try:
-        resp = requests.post(
-            url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60
-        )
-        resp.raise_for_status()
-        cands = resp.json().get("candidates", [])
-        if not cands:  # e.g. safety-blocked -> no candidate
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    # Gemini's free tier occasionally returns 429/503 when busy; retry a few times.
+    for attempt in range(4):
+        try:
+            resp = requests.post(url, json=payload, timeout=60)
+            if resp.status_code in (429, 500, 503) and attempt < 3:
+                wait = 2 ** attempt  # 1s, 2s, 4s
+                print(f"Gemini {resp.status_code}, retrying in {wait}s...")
+                time_module.sleep(wait)
+                continue
+            resp.raise_for_status()
+            cands = resp.json().get("candidates", [])
+            if not cands:  # e.g. safety-blocked -> no candidate
+                return None
+            return "".join(
+                p.get("text", "") for p in cands[0]["content"]["parts"]
+            ).strip() or None
+        except Exception as exc:
+            print(f"AI summary failed: {exc}")
+            _log_available_models()
             return None
-        return "".join(
-            p.get("text", "") for p in cands[0]["content"]["parts"]
-        ).strip() or None
-    except Exception as exc:
-        print(f"AI summary failed: {exc}")
-        _log_available_models()
-        return None
+    return None
 
 
 def _log_available_models() -> None:
