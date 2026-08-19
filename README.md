@@ -3,8 +3,11 @@
 A tiny, **free**, no-server-needed watcher that runs on **GitHub Actions** and
 sends **Telegram** notifications:
 
-- 🔻 **Drop alerts** — every time SPY or QQQ crosses a new *5% down* level on the
-  day (−5%, −10%, −15%, …), measured against the previous close.
+- 🔻 **Drop alerts** — every time SPY or QQQ crosses a new *2% down* level on the
+  day (−2%, −4%, −6%, …), measured against the previous close.
+- 🌅 **Morning AI summary** — ~15 minutes after the open, an AI-written 3–4
+  sentence read on the day's early trend and likely drivers (via Google Gemini's
+  free tier). Optional — skipped automatically if you don't add a key.
 - 📊 **Daily trend** — one message after the close saying whether each symbol was
   **UP / DOWN / SIDEWAYS** today.
 
@@ -33,7 +36,21 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 | `TELEGRAM_BOT_TOKEN` | your bot token     |
 | `TELEGRAM_CHAT_ID`   | your chat ID       |
 
-### 3. Enable the workflow
+### 3. (Optional) Enable the morning AI summary
+
+1. Go to **https://aistudio.google.com/apikey**, sign in, and click
+   **Create API key** — it's free (Gemini free tier).
+2. Add it as one more repo secret:
+
+   | Secret name      | Value                |
+   | ---------------- | -------------------- |
+   | `GEMINI_API_KEY` | your Gemini API key  |
+
+If you skip this, everything else still works — the morning summary is just
+silently skipped. To change the model, set a `GEMINI_MODEL` env var in the
+workflow (default `gemini-2.0-flash`).
+
+### 4. Enable the workflow
 
 Go to the **Actions** tab and enable workflows if prompted. Use **Run workflow**
 on "Market alerts" to test it immediately (outside market hours it will just say
@@ -48,9 +65,10 @@ That's it. It now runs itself every 5 minutes during US market hours.
 Edit the `env:` block in `.github/workflows/market-alerts.yml`:
 
 - `SYMBOLS` — comma-separated tickers (default `SPY,QQQ`).
-- `DROP_STEP_PCT` — alert on every N% of drop (default `5`). A 5% single-day drop
-  is rare; set to `2` or `1` for more frequent alerts.
+- `DROP_STEP_PCT` — alert on every N% of drop (currently set to `2`, so −2%, −4%,
+  …). A 5% single-day drop is rare; `2` or `1` gives more frequent alerts.
 - `SIDEWAYS_PCT` — move smaller than this (%) counts as "sideways" (default `0.5`).
+- `GEMINI_MODEL` — Gemini model for the morning summary (default `gemini-2.0-flash`).
 
 ## Good to know
 

@@ -9,6 +9,7 @@ Designed to run on GitHub Actions on a schedule. Each invocation:
 
 State is kept in state.json so each alert fires at most once per day.
 """
+import html
 import json
 import os
 from datetime import datetime, time
@@ -27,8 +28,14 @@ SIDEWAYS_PCT = float(os.getenv("SIDEWAYS_PCT", "0.5"))   # |move| below this = s
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
+# Optional: enables the morning AI summary. If GEMINI_API_KEY is unset, the
+# summary is simply skipped and everything else keeps working.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
 MARKET_OPEN = time(9, 30)
 MARKET_CLOSE = time(16, 0)
+SUMMARY_AFTER = time(9, 45)   # send the morning summary once, ~15 min after open
 
 
 def send(text: str) -> None:
@@ -48,7 +55,7 @@ def load_state(today: str) -> dict:
         state = json.loads(STATE_FILE.read_text())
         if state.get("date") == today:
             return state
-    return {"date": today, "steps": {}, "trend_sent": False}
+    return {"date": today, "steps": {}, "trend_sent": False, "summary_sent": False}
 
 
 def save_state(state: dict) -> None:
@@ -76,6 +83,45 @@ def get_quote(sym: str, today):
         return None
     prev_close = float(daily["Close"].iloc[-2])
     return last, prev_close
+
+
+def get_headlines(symbols, limit: int = 6):
+    """Best-effort recent headlines for the given symbols (free via yfinance)."""
+    titles = []
+    for sym in symbols:
+        try:
+            for item in (yf.Ticker(sym).news or []):
+                # yfinance has used both {'title': ...} and {'content': {'title': ...}}
+                title = item.get("title") or item.get("content", {}).get("title")
+                if title and title not in titles:
+                    titles.append(title)
+        except Exception:
+            continue
+    return titles[:limit]
+
+
+def ai_summary(prompt: str):
+    """Ask Google Gemini for a short summary. Returns text, or None on failure."""
+    if not GEMINI_API_KEY:
+        return None
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    )
+    try:
+        resp = requests.post(
+            url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60
+        )
+        resp.raise_for_status()
+        cands = resp.json().get("candidates", [])
+        if not cands:  # e.g. safety-blocked -> no candidate
+            return None
+        return "".join(
+            p.get("text", "") for p in cands[0]["content"]["parts"]
+        ).strip() or None
+    except Exception as exc:
+        print(f"AI summary failed: {exc}")
+        return None
 
 
 def main() -> None:
@@ -109,6 +155,34 @@ def main() -> None:
                 )
                 state["steps"][sym] = step
                 changed = True
+
+    # --- morning AI summary, sent once ~15 min after the open ---
+    if (
+        MARKET_OPEN <= now.time() < MARKET_CLOSE
+        and now.time() >= SUMMARY_AFTER
+        and not state.get("summary_sent")
+    ):
+        data_lines = []
+        for sym, (last, prev) in quotes.items():
+            pct = (last - prev) / prev * 100.0
+            data_lines.append(
+                f"{sym}: {pct:+.2f}% (now ${last:,.2f}, prev close ${prev:,.2f})"
+            )
+        headlines = get_headlines(quotes.keys())
+        prompt = (
+            "You are a concise financial market analyst. Using the early-session "
+            "data and headlines below, write a 3-4 sentence summary of today's US "
+            "market trend so far (up / down / sideways / mixed) and the likely "
+            "drivers. Plain text only, no markdown.\n\n"
+            "Data (~15 minutes after the US open):\n" + "\n".join(data_lines) +
+            "\n\nRecent headlines:\n" +
+            ("\n".join(f"- {h}" for h in headlines) if headlines else "(none available)")
+        )
+        summary = ai_summary(prompt)
+        if summary:
+            send("\U0001F305 <b>Morning market summary</b>\n\n" + html.escape(summary))
+            state["summary_sent"] = True
+            changed = True
 
     # --- daily trend, sent once after the close ---
     if now.time() >= MARKET_CLOSE and not state["trend_sent"]:

@@ -30,10 +30,12 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Optional overrides (defaults: SPY,QQQ / 5% steps / 0.5% sideways):
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}   # morning AI summary (optional)
+          DROP_STEP_PCT: "2"   # alert every 2% of drop (-2%, -4%, -6%, ...)
+          # Optional overrides (defaults: SPY,QQQ / 0.5% sideways / gemini-2.0-flash):
           # SYMBOLS: "SPY,QQQ"
-          # DROP_STEP_PCT: "5"
           # SIDEWAYS_PCT: "0.5"
+          # GEMINI_MODEL: "gemini-2.0-flash"
         run: python main.py
       - name: Persist state
         run: |
