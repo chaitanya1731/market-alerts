@@ -125,7 +125,29 @@ def ai_summary(prompt: str):
         ).strip() or None
     except Exception as exc:
         print(f"AI summary failed: {exc}")
+        _log_available_models()
         return None
+
+
+def _log_available_models() -> None:
+    """On failure, list which models this key can actually use (diagnostic)."""
+    try:
+        resp = requests.get(
+            "https://generativelanguage.googleapis.com/v1beta/models"
+            f"?key={GEMINI_API_KEY}",
+            timeout=30,
+        )
+        resp.raise_for_status()
+        usable = [
+            m.get("name", "")
+            for m in resp.json().get("models", [])
+            if "generateContent" in m.get("supportedGenerationMethods", [])
+        ]
+        print("Models supporting generateContent for this key:")
+        for name in usable:
+            print(f"  {name}")
+    except Exception as exc:
+        print(f"Could not list models: {exc}")
 
 
 def main() -> None:
