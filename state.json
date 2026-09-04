@@ -1,6 +1,6 @@
 {
-  "date": "2026-09-03",
+  "date": "2026-09-04",
   "steps": {},
-  "trend_sent": true,
-  "summary_sent": false
+  "trend_sent": false,
+  "summary_sent": true
 }
