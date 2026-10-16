@@ -3,6 +3,6 @@
   "steps": {
     "QQQ": 1
   },
-  "trend_sent": false,
+  "trend_sent": true,
   "summary_sent": true
 }
