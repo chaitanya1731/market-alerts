@@ -4,6 +4,6 @@
     "SPY": 1,
     "QQQ": 2
   },
-  "trend_sent": false,
+  "trend_sent": true,
   "summary_sent": false
 }
