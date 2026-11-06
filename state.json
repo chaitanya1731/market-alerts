@@ -1,9 +1,6 @@
 {
-  "date": "2026-11-05",
-  "steps": {
-    "SPY": 2,
-    "QQQ": 2
-  },
+  "date": "2026-11-06",
+  "steps": {},
   "trend_sent": true,
   "summary_sent": false
 }
